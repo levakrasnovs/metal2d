@@ -1,0 +1,153 @@
+# metal2d
+
+Readable 2D depictions of coordination and organometallic complexes for RDKit.
+
+RDKit's coordinate generators are built for organic molecules. They have no
+notion of a coordination sphere, no idea that six dative bonds to one atom
+should fan out, and no idea that five bonds to the same ring mean one
+η-interaction. Complexes come out as a knot around the metal.
+
+`metal2d` does not replace the depiction engine. It cuts the ligands off, lets
+CoordGen draw each of them on its own — which it does well, they are ordinary
+organic fragments — and then arranges them around the metal itself.
+
+---
+
+## Examples
+
+Each figure shows the same molecule from the two RDKit generators and from
+`metal2d`, with the readability metrics printed above each panel.
+
+**Tris(dichloro-dipyridophenazine)ruthenium(II)** — three large fused ligands on
+one centre.
+
+![tris-dppz ruthenium](images/example1.svg)
+
+```
+Clc1cc2nc3c4ccc[n]5->[Ru+2]67(<-[n]8cccc(c3nc2cc1Cl)c8c45)(<-[n]1cccc2c3nc4cc(Cl)c(Cl)cc4nc3c3ccc[n]->6c3c21)<-[n]1cccc2c3nc4cc(Cl)c(Cl)cc4nc3c3ccc[n]->7c3c21
+```
+
+**Ruthenium bis(dppm) methylimidazole-thiolate** — two bidentate phosphines with
+eight phenyl rings between them.
+
+![ruthenium bis-dppm](images/example2.svg)
+
+```
+Cn1cc[n]2->[Ru+2]34(<-[S-]c12)(<-[P](C[P]->3(c1ccccc1)c1ccccc1)(c1ccccc1)c1ccccc1)<-[P](C[P]->4(c1ccccc1)c1ccccc1)(c1ccccc1)c1ccccc1
+```
+
+**Cp\*-iridium(III) iminopyridine chloride** — an η⁵ ring, drawn as a single bond
+to the ring centre rather than five bonds to five carbons.
+
+![Cp* iridium](images/example3.svg)
+
+```
+CC(C)c1cccc(C(C)C)c1/[N]1=C/c2ccc3cc(F)ccc3[n]2->[Ir+3]<-12345(<-[Cl-])<-[c]1(C)[c]->2(C)[c]->3(C)[c-]->4(-c2ccc(-c3ccccc3)cc2)[c]->51C
+```
+
+---
+
+## Install
+
+```bash
+pip install rdkit numpy
+```
+
+Then drop `metal2d.py`, `metrics.py` and `compare.py` next to your code. The
+library itself needs only RDKit and numpy.
+
+## Use
+
+```python
+from rdkit import Chem
+import metal2d
+
+mol = Chem.MolFromSmiles("[Cl-]->[Pt+2]12<-[S-]C(=N[N]->1=Cc1cccc[n]->21)Nc1ccccc1")
+
+coords = metal2d.depict(mol)          # a copy carrying a 2D conformer
+metal2d.draw(coords, "complex.svg")   # or .png
+```
+
+`depict()` only produces coordinates, so the result can go to any renderer, into
+`MolsToGridImage`, or out to a molfile. `draw()` is the convenience wrapper.
+
+From the command line, on a SMILES string, a `.smi`/`.csv` list or an SDF:
+
+```bash
+python metal2d.py "CC(C)(C)c1cc[n]2->[Ru+2]34..."
+python metal2d.py complexes.smi --png
+python metal2d.py library.sdf 0 5 12
+```
+
+Input format does not matter: incoming coordinates are discarded and
+regenerated. What is required is that the metal–donor bonds are present in the
+connection table, as dative bonds (`->`, `<-`) or plain ones. Complexes written
+as separated ions (`[Ru+2].c1ccncc1...`) carry no coordination information and
+fall through to plain CoordGen.
+
+---
+
+## How well does it work
+
+Measured on **MetalLipoDB**, 1317 unique complexes spanning 22 metals:
+
+| | bond crossings | atom overlaps | clean drawings |
+|---|---|---|---|
+| RDKit CoordGen | 6.52 | 0.50 | 37.2% |
+| **metal2d** | **0.20** | **0.00** | **89.2%** |
+
+Per structure, `metal2d` produces fewer crossings on 58.5%, ties on 39.3% and
+does worse on 2.3%.
+
+Reproduce with:
+
+```bash
+python metrics.py complexes.csv
+python compare.py "SMILES" -o figure.svg
+```
+
+---
+
+## What it actually does
+
+1. Cut every bond from the metal, giving one fragment per ligand.
+2. Depict each fragment on its own with CoordGen.
+3. Collapse η-bonded groups — Cp, Cp\*, arenes, allyl — into a single
+   pseudo-donor at the ring centroid.
+4. Fold each chelate into a conformation that can actually chelate. A free
+   2,2'-bipyridine is drawn *s-trans*, with its nitrogens pointing apart, which
+   no metal position can satisfy. In two dimensions, rotating about a bond is a
+   reflection, so the fix is to search reflections for the one that puts the
+   donors on a small circle.
+5. Place the metal. For three or more donors it goes at the centre of the circle
+   through them, the only point equidistant from all of them. For one or two,
+   on an arc of slots.
+6. Share the 360° around the metal in proportion to how wide each ligand really
+   is, then relax rotations to clear the remaining collisions.
+
+## Known limitations
+
+- **Over-long metal–donor bonds.** When several bulky ligands compete for room,
+  they get pushed outward and the bonds to the metal are drawn visibly long.
+  Median stretch factor is 2.9 against 1.6 for CoordGen. This is the main
+  remaining defect.
+- **Bulky monodentate donors.** A triarylphosphine puts three rings on one atom
+  1.5 bond lengths from the centre; it will subtend more than 120° no matter how
+  the ligands are shared out. Bidentate phosphines are fine.
+- **Large wrapping ligands.** Peptide conjugates and macrocyclic chelators that
+  envelop the metal are handled better by plain CoordGen, which has dedicated
+  macrocycle support. This is where most of the 2.3% of losses sit.
+- **One metal centre.** Polynuclear complexes are not supported; the first metal
+  found is used.
+- Cage ligands such as PTA or adamantane cannot be drawn flat without
+  self-crossings at all. `compare.py` reports how many crossings lie inside a
+  single ligand, so this can be told apart from a bad arrangement.
+
+## A note on measuring depictions
+
+Counting bond crossings naively penalises correct organometallic drawing. The
+bond from a metal to the centre of an η-bonded ring **must** cross that ring's
+perimeter to get there, so every η group adds one unavoidable crossing. On a
+haptic-rich set this alone moved the clean-drawing rate from 48% to 83%.
+`metrics.py` recognises the centroid bond and forgives that single crossing —
+and only that one: a haptic bond crossing anything else still counts.
