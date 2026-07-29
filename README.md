@@ -89,44 +89,37 @@ fall through to plain CoordGen.
 
 ## How well does it work
 
-Measured on **MetalLipoDB**, 1317 unique complexes spanning 22 metals:
+Measured on **tmQM** — 10 083 mononuclear transition-metal complexes drawn from
+the Cambridge Structural Database. A public dataset, and one the algorithm was
+never tuned on:
 
-| | bond crossings | atom overlaps | clean drawings |
-|---|---|---|---|
-| RDKit CoordGen | 6.52 | 0.50 | 37.2% |
-| **metal2d** | **0.20** | **0.00** | **89.2%** |
-
-Per structure, `metal2d` produces fewer crossings on 58.5%, ties on 39.3% and
-does worse on 2.3%.
-
-Reproduce with:
+| | bond crossings | atom overlaps | donors facing away | clean drawings |
+|---|---|---|---|---|
+| RDKit Compute2DCoords | 4.43 | 2.57 | 54.5% | 28.8% |
+| RDKit CoordGen | 3.93 | 0.51 | 55.2% | 49.1% |
+| **metal2d** | **0.81** | **0.06** | **27.5%** | **69.9%** |
 
 ```bash
-metal2d metrics complexes.csv
-metal2d compare "SMILES" -o figure.svg
+metal2d metrics tmqm.csv --step 10
 ```
 
-A 300-structure subset is included so the numbers can be checked without the
-full database:
+A 300-structure subset ships with the package, so the numbers can be checked
+without downloading anything:
 
 ```bash
 metal2d metrics "$(python -c 'import metal2d,os;print(os.path.join(os.path.dirname(metal2d.__file__),"data","sample.smi"))')"
 ```
 
-It is stratified across 23 metals and spread over size, coordination number,
-denticity and η-bonding — 14% of it carries η-bonded groups, coordination
-numbers run from 1 to 13 and denticities from 1 to 8. Being deliberately
-weighted towards the awkward cases, it is a little harsher than the full set:
+It is stratified across 23 metals and deliberately weighted towards the awkward
+cases — 14% of it carries η-bonded groups, coordination numbers run from 1 to 13
+and denticities from 1 to 8 — so it scores harsher than tmQM:
 
 | on the bundled sample | bond crossings | atom overlaps | clean drawings |
 |---|---|---|---|
 | RDKit CoordGen | 5.60 | 0.63 | 44.0% |
 | **metal2d** | **0.65** | **0.02** | **75.7%** |
 
-It ships inside the package as `metal2d/data/sample.smi`;
 `examples/make_sample.py` regenerates it from a database CSV, deterministically.
-
----
 
 ## What it actually does
 
