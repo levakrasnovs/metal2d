@@ -344,8 +344,8 @@ def _hms(sec):
     return "%dh%02dm" % (sec // 3600, (sec % 3600) // 60)
 
 
-def evaluate(src, engines=("coordgen", "metal2d"), step=1, verbose=True,
-             column=None, progress=True):
+def evaluate(src, engines=("compute2dcoords", "coordgen", "metal2d"), step=1,
+             verbose=True, column=None, progress=True):
     """Score every structure with every engine. Returns a list of dict rows."""
     if "metal2d" in engines and metal2d is None:
         raise SystemExit("metal2d.py must be importable to score the metal2d engine")

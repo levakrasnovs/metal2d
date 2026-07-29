@@ -107,7 +107,7 @@ def main(argv=None):
 
     m = sub.add_parser("metrics", help="score depictions and compare engines")
     _add_common(m)
-    m.add_argument("--engines", default="coordgen,metal2d")
+    m.add_argument("--engines", default="compute2dcoords,coordgen,metal2d")
     m.add_argument("--step", type=int, default=1, help="score every Nth structure")
     m.add_argument("--worst", type=int, nargs="?", const=15,
                    help="list the worst structures")
