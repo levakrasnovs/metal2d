@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
 license-files = ["LICENSE"]
-authors = [{ name = "Your Name", email = "you@example.org" }]
+authors = [{ name = "Lev Krasnov", email = "lewa.krasnovs@gmail.com" }]
 keywords = [
     "rdkit", "cheminformatics", "chemistry", "depiction",
     "coordination chemistry", "organometallic", "metal complexes",
@@ -35,8 +35,8 @@ progress = ["tqdm"]
 dev = ["pytest>=7", "build", "twine"]
 
 [project.urls]
-Homepage = "https://github.com/USER/metal2d"
-Issues = "https://github.com/USER/metal2d/issues"
+Homepage = "https://github.com/levakrasnovs/metal2d"
+Issues = "https://github.com/levakrasnovs/metal2d/issues"
 
 [project.scripts]
 metal2d = "metal2d.cli:main"

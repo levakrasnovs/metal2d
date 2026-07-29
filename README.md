@@ -23,7 +23,7 @@ Each figure shows the same molecule from the two RDKit generators and from
 **Tris(dichloro-dipyridophenazine)ruthenium(II)** — three large fused ligands on
 one centre.
 
-![tris-dppz ruthenium](images/example1.svg)
+![tris-dppz ruthenium](https://raw.githubusercontent.com/levakrasnovs/metal2d/main/images/example1.svg)
 
 ```
 Clc1cc2nc3c4ccc[n]5->[Ru+2]67(<-[n]8cccc(c3nc2cc1Cl)c8c45)(<-[n]1cccc2c3nc4cc(Cl)c(Cl)cc4nc3c3ccc[n]->6c3c21)<-[n]1cccc2c3nc4cc(Cl)c(Cl)cc4nc3c3ccc[n]->7c3c21
@@ -32,7 +32,7 @@ Clc1cc2nc3c4ccc[n]5->[Ru+2]67(<-[n]8cccc(c3nc2cc1Cl)c8c45)(<-[n]1cccc2c3nc4cc(Cl
 **Ruthenium bis(dppm) methylimidazole-thiolate** — two bidentate phosphines with
 eight phenyl rings between them.
 
-![ruthenium bis-dppm](images/example2.svg)
+![ruthenium bis-dppm](https://raw.githubusercontent.com/levakrasnovs/metal2d/main/images/example2.svg)
 
 ```
 Cn1cc[n]2->[Ru+2]34(<-[S-]c12)(<-[P](C[P]->3(c1ccccc1)c1ccccc1)(c1ccccc1)c1ccccc1)<-[P](C[P]->4(c1ccccc1)c1ccccc1)(c1ccccc1)c1ccccc1
@@ -41,7 +41,7 @@ Cn1cc[n]2->[Ru+2]34(<-[S-]c12)(<-[P](C[P]->3(c1ccccc1)c1ccccc1)(c1ccccc1)c1ccccc
 **Cp\*-iridium(III) iminopyridine chloride** — an η⁵ ring, drawn as a single bond
 to the ring centre rather than five bonds to five carbons.
 
-![Cp\* iridium](images/example3.svg)
+![Cp\* iridium](https://raw.githubusercontent.com/levakrasnovs/metal2d/main/images/example3.svg)
 
 ```
 CC(C)c1cccc(C(C)C)c1/[N]1=C/c2ccc3cc(F)ccc3[n]2->[Ir+3]<-12345(<-[Cl-])<-[c]1(C)[c]->2(C)[c]->3(C)[c-]->4(-c2ccc(-c3ccccc3)cc2)[c]->51C
