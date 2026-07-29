@@ -23,7 +23,7 @@ Each figure shows the same molecule from the two RDKit generators and from
 **Tris(dichloro-dipyridophenazine)ruthenium(II)** — three large fused ligands on
 one centre.
 
-tris-dppz ruthenium
+![tris-dppz ruthenium](images/example1.svg)
 
 ```
 Clc1cc2nc3c4ccc[n]5->[Ru+2]67(<-[n]8cccc(c3nc2cc1Cl)c8c45)(<-[n]1cccc2c3nc4cc(Cl)c(Cl)cc4nc3c3ccc[n]->6c3c21)<-[n]1cccc2c3nc4cc(Cl)c(Cl)cc4nc3c3ccc[n]->7c3c21
@@ -32,16 +32,16 @@ Clc1cc2nc3c4ccc[n]5->[Ru+2]67(<-[n]8cccc(c3nc2cc1Cl)c8c45)(<-[n]1cccc2c3nc4cc(Cl
 **Ruthenium bis(dppm) methylimidazole-thiolate** — two bidentate phosphines with
 eight phenyl rings between them.
 
-ruthenium bis-dppm
+![ruthenium bis-dppm](images/example2.svg)
 
 ```
 Cn1cc[n]2->[Ru+2]34(<-[S-]c12)(<-[P](C[P]->3(c1ccccc1)c1ccccc1)(c1ccccc1)c1ccccc1)<-[P](C[P]->4(c1ccccc1)c1ccccc1)(c1ccccc1)c1ccccc1
 ```
 
-**Cp-iridium(III) iminopyridine chloride** — an η⁵ ring, drawn as a single bond
+**Cp\*-iridium(III) iminopyridine chloride** — an η⁵ ring, drawn as a single bond
 to the ring centre rather than five bonds to five carbons.
 
-Cp* iridium
+![Cp\* iridium](images/example3.svg)
 
 ```
 CC(C)c1cccc(C(C)C)c1/[N]1=C/c2ccc3cc(F)ccc3[n]2->[Ir+3]<-12345(<-[Cl-])<-[c]1(C)[c]->2(C)[c]->3(C)[c-]->4(-c2ccc(-c3ccccc3)cc2)[c]->51C
@@ -93,9 +93,9 @@ fall through to plain CoordGen.
 
 
 
-## How well does it work
+## Benchmarks
 
-Measured on 1/10 of **[tmQM](https://github.com/uiocompcat/tmQM/blob/master/tmQM/tmQM_y.csv)**  [](https://github.com/uiocompcat/tmQM/blob/master/tmQM/tmQM_y.csv)— 10 083 mononuclear transition-metal complexes drawn from the Cambridge Structural Database. A public dataset, and one the algorithm was never tuned on:
+Measured on every tenth structure of **[tmQM](https://github.com/uiocompcat/tmQM/blob/master/tmQM/tmQM_y.csv)** — 10,083 mononuclear transition-metal complexes drawn from the Cambridge Structural Database. A public dataset, and one the algorithm was never tuned on:
 
 
 |                       | bond crossings | atom overlaps | donors facing away | clean drawings |
@@ -133,38 +133,38 @@ and denticities from 1 to 8 — so it scores harsher than tmQM:
 
 1. Cut every bond from the metal, giving one fragment per ligand.
 2. Depict each fragment on its own with CoordGen.
-3. Collapse η-bonded groups — Cp, Cp, arenes, allyl — into a single
-  pseudo-donor at the ring centroid.
+3. Collapse η-bonded groups — Cp, Cp\*, arenes, allyl — into a single
+   pseudo-donor at the ring centroid.
 4. Fold each chelate into a conformation that can actually chelate. A free
   2,2'-bipyridine is drawn *s-trans*, with its nitrogens pointing apart, which
    no metal position can satisfy. In two dimensions, rotating about a bond is a
    reflection, so the fix is to search reflections for the one that puts the
    donors on a small circle.
 5. Place the metal. For three or more donors it goes at the centre of the circle
-  through them, the only point equidistant from all of them. For one or two,
+   through them, the only point equidistant from all of them. For one or two,
    on an arc of slots.
 6. Share the 360° around the metal in proportion to how wide each ligand really
-  is, then relax rotations to clear the remaining collisions.
+   is, then relax rotations to clear the remaining collisions.
 
 
 
 ## Known limitations
 
 - **Over-long metal–donor bonds.** When several bulky ligands compete for room,
-they get pushed outward and the bonds to the metal are drawn visibly long.
-Median stretch factor is 2.9 against 1.6 for CoordGen. This is the main
+they get pushed outward and the bonds to the metal are drawn visibly longer
+than an ordinary bond — noticeably more so than with CoordGen. This is the main
 remaining defect.
 - **Bulky monodentate donors.** A triarylphosphine puts three rings on one atom
 1.5 bond lengths from the centre; it will subtend more than 120° no matter how
 the ligands are shared out. Bidentate phosphines are fine.
 - **Large wrapping ligands.** Peptide conjugates and macrocyclic chelators that
 envelop the metal are handled better by plain CoordGen, which has dedicated
-macrocycle support. This is where most of the 2.3% of losses sit.
+macrocycle support. This is where most of the remaining losses sit.
 - **One metal centre.** Polynuclear complexes are not supported; the first metal
 found is used.
 - Cage ligands such as PTA or adamantane cannot be drawn flat without
-self-crossings at all. `compare.py` reports how many crossings lie inside a
-single ligand, so this can be told apart from a bad arrangement.
+self-crossings at all. `metal2d metrics` reports how many crossings lie inside
+a single ligand, so this can be told apart from a bad arrangement.
 
 
 
@@ -172,7 +172,7 @@ single ligand, so this can be told apart from a bad arrangement.
 
 Counting bond crossings naively penalises correct organometallic drawing. The
 bond from a metal to the centre of an η-bonded ring **must** cross that ring's
-perimeter to get there, so every η group adds one unavoidable crossing. On a
-haptic-rich set this alone moved the clean-drawing rate from 48% to 83%.
+perimeter to get there, so every η group adds one unavoidable crossing, which
+on a haptic-rich set is enough to swing the clean-drawing rate substantially.
 `metal2d metrics` recognises the centroid bond and forgives that single crossing —
 and only that one: a haptic bond crossing anything else still counts.
