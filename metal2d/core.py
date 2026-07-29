@@ -1,5 +1,5 @@
 """
-metal2d.py - readable 2D depictions of coordination complexes with RDKit.
+metal2d.core - readable 2D depictions of coordination complexes with RDKit.
 
 Pipeline
   1. cut every metal-donor bond
@@ -696,30 +696,3 @@ def read_molecules(src, sanitize=True):
 
     # not a path: treat the argument itself as a SMILES string
     yield "mol_0", Chem.MolFromSmiles(str(src), sanitize=sanitize)
-
-
-if __name__ == "__main__":
-    import sys
-    src = sys.argv[1]
-    fmt = "png" if "--png" in sys.argv[2:] else "svg"
-    sel = [a for a in sys.argv[2:] if a.isdigit()]
-    sel = {int(a) for a in sel} if sel else None
-
-    ok = bad = nometal = 0
-    for i, (name, m) in enumerate(read_molecules(src)):
-        if sel is not None and i not in sel:
-            continue
-        safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in name)[:60]
-        out = "%03d_%s.%s" % (i, safe, fmt)
-        if m is None:
-            print("%-28s PARSE FAILED" % out)
-            bad += 1
-            continue
-        if find_metal(m) is None:
-            nometal += 1
-            print("%-28s no metal centre - plain CoordGen depiction" % out)
-        draw(depict(m), out, size=(1400, 1400) if fmt == "png" else (820, 820))
-        print(out)
-        ok += 1
-    print("\n%d written, %d unparsable, %d without a metal centre"
-          % (ok, bad, nometal))

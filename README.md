@@ -50,11 +50,11 @@ CC(C)c1cccc(C(C)C)c1/[N]1=C/c2ccc3cc(F)ccc3[n]2->[Ir+3]<-12345(<-[Cl-])<-[c]1(C)
 ## Install
 
 ```bash
-pip install rdkit numpy
+pip install metal2d
 ```
 
-Then drop `metal2d.py`, `metrics.py` and `compare.py` next to your code. The
-library itself needs only RDKit and numpy.
+Only RDKit and numpy are required. `pip install metal2d[png]` adds cairosvg for
+PNG output, `metal2d[progress]` adds a nicer progress bar.
 
 ## Use
 
@@ -74,9 +74,9 @@ metal2d.draw(coords, "complex.svg")   # or .png
 From the command line, on a SMILES string, a `.smi`/`.csv` list or an SDF:
 
 ```bash
-python metal2d.py "CC(C)(C)c1cc[n]2->[Ru+2]34..."
-python metal2d.py complexes.smi --png
-python metal2d.py library.sdf 0 5 12
+metal2d draw "CC(C)(C)c1cc[n]2->[Ru+2]34..."
+metal2d draw complexes.smi --png --outdir figures
+metal2d draw library.sdf --index 0 5 12
 ```
 
 Input format does not matter: incoming coordinates are discarded and
@@ -102,9 +102,29 @@ does worse on 2.3%.
 Reproduce with:
 
 ```bash
-python metrics.py complexes.csv
-python compare.py "SMILES" -o figure.svg
+metal2d metrics complexes.csv
+metal2d compare "SMILES" -o figure.svg
 ```
+
+A 300-structure subset is included so the numbers can be checked without the
+full database:
+
+```bash
+metal2d metrics "$(python -c 'import metal2d,os;print(os.path.join(os.path.dirname(metal2d.__file__),"data","sample.smi"))')"
+```
+
+It is stratified across 23 metals and spread over size, coordination number,
+denticity and η-bonding — 14% of it carries η-bonded groups, coordination
+numbers run from 1 to 13 and denticities from 1 to 8. Being deliberately
+weighted towards the awkward cases, it is a little harsher than the full set:
+
+| on the bundled sample | bond crossings | atom overlaps | clean drawings |
+|---|---|---|---|
+| RDKit CoordGen | 5.60 | 0.63 | 44.0% |
+| **metal2d** | **0.65** | **0.02** | **75.7%** |
+
+It ships inside the package as `metal2d/data/sample.smi`;
+`examples/make_sample.py` regenerates it from a database CSV, deterministically.
 
 ---
 
@@ -149,5 +169,5 @@ Counting bond crossings naively penalises correct organometallic drawing. The
 bond from a metal to the centre of an η-bonded ring **must** cross that ring's
 perimeter to get there, so every η group adds one unavoidable crossing. On a
 haptic-rich set this alone moved the clean-drawing rate from 48% to 83%.
-`metrics.py` recognises the centroid bond and forgives that single crossing —
+`metal2d metrics` recognises the centroid bond and forgives that single crossing —
 and only that one: a haptic bond crossing anything else still counts.

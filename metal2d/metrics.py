@@ -24,16 +24,9 @@ from rdkit.Chem import rdCoordGen, rdDepictor
 
 RDLogger.DisableLog("rdApp.*")
 
-try:
-    import metal2d
-except ImportError:                                   # metrics can run without it
-    metal2d = None
+from . import core as metal2d
 
-try:                                    # keep one definition of what a metal is
-    from metal2d import METALS
-except ImportError:
-    METALS = (set(range(21, 31)) | set(range(39, 49)) | set(range(57, 81))
-              | {13, 31, 49, 50, 51, 81, 82, 83, 84} | set(range(89, 104)))
+from .core import METALS       # one definition of what counts as a metal
 
 
 # --------------------------------------------------------------------------- #
@@ -450,28 +443,3 @@ def worst(rows, engine="metal2d", k=15):
     for r in bad:
         print("  %-34s %6d %10d %9d"
               % (str(r["name"])[:34], r["atoms"], r[key], r["%s_overlaps" % engine]))
-
-
-if __name__ == "__main__":
-    args = sys.argv[1:]
-    if not args:
-        print(__doc__)
-        raise SystemExit(0)
-    src = args[0]
-
-    def opt(flag, default=None, cast=str):
-        return cast(args[args.index(flag) + 1]) if flag in args else default
-
-    engines = tuple(opt("--engine", "coordgen,metal2d").split(","))
-    rows = evaluate(src, engines=engines, step=opt("--step", 1, int),
-                    column=opt("--column"), progress="--quiet" not in args)
-    if "--worst" in args:
-        worst(rows, engines[-1], opt("--worst", 15, int))
-    if "--csv" in args:
-        import csv as _csv
-        path = opt("--csv", "metrics.csv")
-        with open(path, "w", newline="") as fh:
-            w = _csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
-            w.writeheader()
-            w.writerows(rows)
-        print("\nper-structure metrics written to %s" % path)

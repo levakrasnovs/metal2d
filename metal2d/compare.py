@@ -26,8 +26,8 @@ from rdkit.Chem.Draw import rdMolDraw2D
 
 RDLogger.DisableLog("rdApp.*")
 
-import metal2d
-from metrics import score, read_molecules
+from . import core as metal2d
+from .metrics import score, read_molecules
 
 PANEL = 640          # px per panel
 HEADER = 62          # px reserved for the labels above each panel
@@ -125,7 +125,7 @@ def _split_crossings(mol):
         return np.sign((q - p)[0] * (r - p)[1] - (q - p)[1] * (r - p)[0])
 
     same = diff = 0
-    from metrics import _haptic_pairs
+    from .metrics import _haptic_pairs
     forgive = _haptic_pairs(mol)
     for i in range(len(segs)):
         for j in range(i + 1, len(segs)):
@@ -220,55 +220,3 @@ def _to_png(svg_path, scale=2):
 
 
 # --------------------------------------------------------------------------- #
-if __name__ == "__main__":
-    args = sys.argv[1:]
-    if not args:
-        print(__doc__)
-        raise SystemExit(0)
-    src = args[0]
-
-    def opt(flag, default=None, cast=str):
-        return cast(args[args.index(flag) + 1]) if flag in args else default
-
-    engines = tuple(opt("--engines", "compute2dcoords,coordgen,metal2d").split(","))
-    size = opt("--size", PANEL, int)
-    want_png = "--png" in args
-    out = opt("-o", None)
-
-    idx = None
-    if "--index" in args:
-        idx = []
-        for a in args[args.index("--index") + 1:]:
-            if a.startswith("-"):
-                break
-            idx.append(int(a))
-
-    is_file = os.path.exists(src)
-    items = []
-    if is_file:
-        for i, (name, m) in enumerate(read_molecules(src)):
-            if idx is not None and i not in idx:
-                continue
-            if m is not None:
-                items.append((name, m))
-            else:
-                print("%-30s PARSE FAILED" % name)
-    else:
-        items = [("mol", src)]
-
-    for name, m in items:
-        path = out if (out and len(items) == 1) else "comparison_%s.svg" % \
-            "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in str(name))[:40]
-        try:
-            path, res = compare(m, path, engines=engines, size=size,
-                                title=None if not is_file else str(name),
-                                png=want_png)
-        except Exception as exc:
-            print("%-30s FAILED: %s" % (name, exc))
-            continue
-        print(path)
-        for eng, s, (same, diff) in res:
-            print("   %-22s crossings %3d (%d inside a ligand)  overlaps %2d  "
-                  "tight %3d  stretch %.1f"
-                  % (LABELS.get(eng, eng), s["crossings"], same, s["overlaps"],
-                     s["tight"], s["stretch"]))
