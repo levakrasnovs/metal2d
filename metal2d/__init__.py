@@ -19,7 +19,7 @@ from .core import _drawing_mol as prepare_for_drawing
 from .metrics import score, evaluate
 from .compare import compare
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = ["depict", "draw", "prepare_for_drawing", "style_options",
            "find_metal", "read_molecules", "score", "evaluate", "compare",

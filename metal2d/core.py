@@ -81,10 +81,16 @@ def _hapto_groups(piece, local_donors):
     Cp*, arenes, allyl (not a ring), and - importantly - exocyclic donor atoms
     hanging off a Cp ring, which would otherwise get their own second bond to
     the metal."""
-    dset = set(local_donors)
+    # A metal donor is never part of an eta-bonded group. In a bridged cluster
+    # the two bridging atoms are both bonded to the second metal, so plain
+    # connectivity would read bridge-metal-bridge as one eta-3 group, collapse
+    # it to a centroid and delete the very bonds that make the bridge.
+    metal_d = [d for d in local_donors
+               if piece.GetAtomWithIdx(d).GetAtomicNum() in METALS]
+    dset = {d for d in local_donors if d not in metal_d}
     seen, groups = set(), []
     for d in local_donors:
-        if d in seen:
+        if d in seen or d in metal_d:
             continue
         comp, stack = set(), [d]
         while stack:
@@ -98,6 +104,7 @@ def _hapto_groups(piece, local_donors):
                     stack.append(j)
         seen |= comp
         groups.append(sorted(comp))
+    groups.extend([m] for m in metal_d)
     return groups
 
 
@@ -311,8 +318,25 @@ def _angular_width(xy, rmin=0.8 * ML):
 # --------------------------------------------------------------------------- #
 #  main
 # --------------------------------------------------------------------------- #
-def depict(mol, ml=ML, relax=True, pad=6.0):
+def depict(mol, ml=ML, relax=True, pad=6.0, _depth=0, cluster=True):
     mol = Chem.Mol(mol)
+
+    # Metals bonded to each other need the cluster layout: the single-centre
+    # model below would cut the M-M-donor rings that bridges form. Imported
+    # lazily, and re-entered with cluster=False, so the two modules can call
+    # each other without looping.
+    if cluster:
+        try:
+            from . import cluster as _cl
+            if _cl.has_cluster(mol):
+                out = _cl.depict(mol, relax=relax, _depth=_depth)
+                if out is not None:
+                    return out
+        except ImportError:
+            pass
+        except Exception:
+            pass
+
     mi = find_metal(mol)
 
     def _fallback():
@@ -342,7 +366,19 @@ def depict(mol, ml=ML, relax=True, pad=6.0):
     # ---- 1. canonical fit of every ligand, centred on angle 0 -------------- #
     fitted = []
     for piece, amap in ligands:
-        rdCoordGen.AddCoords(piece)
+        # A ligand fragment may itself contain a metal centre (bridged
+        # polynuclear complex). Plain CoordGen would tie that centre into a
+        # knot, so lay the sub-complex out with the same algorithm instead.
+        if _depth < 4 and find_metal(piece) is not None:
+            try:
+                sub = depict(piece, ml=ml, relax=relax, pad=pad, _depth=_depth + 1)
+                conf = sub.GetConformer()
+                piece.RemoveAllConformers()
+                piece.AddConformer(Chem.Conformer(conf), assignId=True)
+            except Exception:
+                rdCoordGen.AddCoords(piece)
+        else:
+            rdCoordGen.AddCoords(piece)
         c = piece.GetConformer()
         xy = np.array([[c.GetAtomPosition(i).x, c.GetAtomPosition(i).y]
                        for i in range(piece.GetNumAtoms())])
@@ -411,20 +447,39 @@ def depict(mol, ml=ML, relax=True, pad=6.0):
                 # puts the M-donor bond straight through a substituent whenever
                 # the donor carries three of them, e.g. a triarylphosphine
                 d0 = groups[0][0]
-                nbr = [n.GetIdx() for n in piece.GetAtomWithIdx(d0).GetNeighbors()]
-                if nbr:
-                    ang = np.sort([np.degrees(np.arctan2(*(v[n] - v[d0])[::-1]))
-                                   % 360.0 for n in nbr])
-                    gaps = np.diff(np.append(ang, ang[0] + 360.0))
-                    g0 = int(np.argmax(gaps))
-                    toward = ang[g0] + gaps[g0] / 2          # bisector of the gap
-                else:
-                    body = np.delete(v, d0, axis=0)
-                    ref = (body.mean(0) - v[d0]) if len(body) else np.array([-1.0, 0.0])
-                    toward = np.degrees(np.arctan2(ref[1], ref[0])) + 180.0
-                # that bisector must end up pointing back at the metal, i.e. -x
-                R = _rot(180.0 - toward)
-                t = slots[0] - R @ s[0]
+                if len(groups[0]) >= 3:
+                    # An eta-bonded ring is collapsed to a centroid, and fitting
+                    # one point onto one slot leaves the ring's own spin free.
+                    # Left free it can point the ring's substituents back at the
+                    # metal, which folds a ferrocenyl or a substituted Cp over
+                    # whatever sits behind it. Spin the ring so that everything
+                    # hanging off it leads away from the metal instead.
+                    ring = set(groups[0])
+                    body = [i for i in range(len(v)) if i not in ring]
+                    cen = v[sorted(ring)].mean(0)
+                    ref = (v[body].mean(0) - cen) if body else (cen - v[d0])
+                    if np.linalg.norm(ref) < 1e-9:
+                        ref = np.array([1.0, 0.0])
+                    # +x is away from the metal here, so aim the body at +x
+                    R = _rot(-np.degrees(np.arctan2(ref[1], ref[0])))
+                    t = slots[0] - R @ s[0]
+                if len(groups[0]) < 3:
+                    nbr = [n.GetIdx()
+                           for n in piece.GetAtomWithIdx(d0).GetNeighbors()]
+                    if nbr:
+                        ang = np.sort([np.degrees(np.arctan2(*(v[n] - v[d0])[::-1]))
+                                       % 360.0 for n in nbr])
+                        gaps = np.diff(np.append(ang, ang[0] + 360.0))
+                        g0 = int(np.argmax(gaps))
+                        toward = ang[g0] + gaps[g0] / 2      # bisector of the gap
+                    else:
+                        rest_b = np.delete(v, d0, axis=0)
+                        ref = ((rest_b.mean(0) - v[d0]) if len(rest_b)
+                               else np.array([-1.0, 0.0]))
+                        toward = np.degrees(np.arctan2(ref[1], ref[0])) + 180.0
+                    # that bisector must end up pointing back at the metal, i.e. -x
+                    R = _rot(180.0 - toward)
+                    t = slots[0] - R @ s[0]
             else:
                 if circ_r is not None:
                     # metal at the circle centre; only the ligand's overall
@@ -456,7 +511,8 @@ def depict(mol, ml=ML, relax=True, pad=6.0):
         rigid = circ_r is not None      # metal position fixed by this ligand
         # amap, coords, half-width, n groups, donor indices, radial push, bite span
         fitted.append([amap, best[1], max(best[2], half * (k - 1) + 12.0), k,
-                       dl, 0.0, half * (k - 1), rigid])
+                       dl, 0.0, half * (k - 1), rigid,
+                       len(groups) == 1 and len(groups[0]) >= 3])
 
     n = len(fitted)
 
@@ -474,6 +530,25 @@ def depict(mol, ml=ML, relax=True, pad=6.0):
     for i in order:
         centre[i] = acc + span[i] / 2
         acc += span[i]
+
+    # A metallocene is not two ligands sharing a circle, it is a sandwich: the
+    # rings belong on opposite sides of the metal. Sharing the circle by width
+    # puts them at whatever angle their substituents dictate, which in the worst
+    # case drops the metal onto one of the ring centroids.
+    sandwich = (n == 2 and all(f[3] == 1 for f in fitted)
+                and all(f[8] for f in fitted))
+    if sandwich:
+        wide = int(np.argmax(W))
+        centre = {wide: 90.0, 1 - wide: 270.0}
+        # The rings are also marked rigid, which helps but does not settle it:
+        # _relax frees a rigid ligand as soon as it clashes, and a substituted
+        # ring always brushes its partner with its tail, so the ring still
+        # drifts somewhat. Freezing it outright fixes the sandwich and wrecks
+        # everything around it (crossings 2->4, overlaps 1->3 on the Fe demo),
+        # so the proper fix is a relaxation that rotates a sandwich as one rigid
+        # body instead of two ligands. Not done here.
+        for f in fitted:
+            f[7] = True
     for i, f in enumerate(fitted):
         f[1] = f[1] @ _rot(centre[i]).T
         if scale < 1.0 and f[3] > 1 and not f[7]:   # squeezed -> push out
@@ -571,8 +646,8 @@ def _relax(placed, ml=ML, sweeps=4, span=30.0, step=3.0, push=0.6):
 def _drawing_mol(mol):
     """Copy prepared for drawing: plain lines to the metal instead of dative
     arrows, and one single bond to a ring centroid for each eta-bonded group."""
-    mi = find_metal(mol)
-    if mi is None:
+    metals = [a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() in METALS]
+    if not metals:
         return Chem.Mol(mol)
     base = Chem.Mol(mol)
     # kekulize FIRST, while the metal bonds are still dative and therefore do not
@@ -584,36 +659,40 @@ def _drawing_mol(mol):
         pass
 
     rw = Chem.RWMol(base)
-    donors = [b.GetOtherAtomIdx(mi) for b in rw.GetAtomWithIdx(mi).GetBonds()]
-    hapto = [g for g in _hapto_groups(rw, donors) if len(g) >= 3]
+    # every metal centre needs the same treatment, not just the first one:
+    # a polynuclear complex otherwise gets centroids and plain bonds at one
+    # centre and raw dative arrows through the ring at all the others
+    for mi in metals:
+      donors = [b.GetOtherAtomIdx(mi) for b in rw.GetAtomWithIdx(mi).GetBonds()]
+      hapto = [g for g in _hapto_groups(rw, donors) if len(g) >= 3]
 
-    for grp in hapto:
-        conf = rw.GetConformer()
-        xy = np.array([[conf.GetAtomPosition(i).x, conf.GetAtomPosition(i).y]
-                       for i in range(rw.GetNumAtoms())])
-        P = _hapto_centre(rw, grp, xy)
-        for i in grp:
-            if rw.GetBondBetweenAtoms(mi, i) is not None:
-                rw.RemoveBond(mi, i)
-        dummy = Chem.Atom(0)
-        dummy.SetNoImplicit(True)
-        di = rw.AddAtom(dummy)
-        rw.GetAtomWithIdx(di).SetProp("atomLabel", "")
+      for grp in hapto:
+          conf = rw.GetConformer()
+          xy = np.array([[conf.GetAtomPosition(i).x, conf.GetAtomPosition(i).y]
+                         for i in range(rw.GetNumAtoms())])
+          P = _hapto_centre(rw, grp, xy)
+          for i in grp:
+              if rw.GetBondBetweenAtoms(mi, i) is not None:
+                  rw.RemoveBond(mi, i)
+          dummy = Chem.Atom(0)
+          dummy.SetNoImplicit(True)
+          di = rw.AddAtom(dummy)
+          rw.GetAtomWithIdx(di).SetProp("atomLabel", "")
         # record which atoms this centroid stands for. The bond from the metal to
         # a ring centre has to cross that ring's perimeter to get there, so any
         # tool measuring bond crossings needs to know to forgive that one.
-        rw.GetAtomWithIdx(di).SetProp("_hapticAtoms", ",".join(map(str, grp)))
-        rw.AddBond(mi, di, Chem.BondType.SINGLE)
-        rw.GetConformer().SetAtomPosition(di, Point3D(float(P[0]), float(P[1]), 0.0))
+          rw.GetAtomWithIdx(di).SetProp("_hapticAtoms", ",".join(map(str, grp)))
+          rw.AddBond(mi, di, Chem.BondType.SINGLE)
+          rw.GetConformer().SetAtomPosition(di, Point3D(float(P[0]), float(P[1]), 0.0))
 
-    for b in rw.GetAtomWithIdx(mi).GetBonds():
-        if b.GetBondType() in (Chem.BondType.DATIVE, Chem.BondType.DATIVEONE,
-                               Chem.BondType.ZERO):
-            b.SetBondType(Chem.BondType.SINGLE)
+      for b in rw.GetAtomWithIdx(mi).GetBonds():
+          if b.GetBondType() in (Chem.BondType.DATIVE, Chem.BondType.DATIVEONE,
+                                 Chem.BondType.ZERO):
+              b.SetBondType(Chem.BondType.SINGLE)
     # only the metal needs its implicit hydrogens suppressed. Doing this for every
     # atom also wipes explicit ones, which silently removes the H from [nH], -OH,
     # secondary amines and so on
-    rw.GetAtomWithIdx(mi).SetNoImplicit(True)
+      rw.GetAtomWithIdx(mi).SetNoImplicit(True)
     return rw.GetMol()
 
 

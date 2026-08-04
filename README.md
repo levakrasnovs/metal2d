@@ -102,7 +102,7 @@ Measured on every tenth structure of **[tmQM](https://github.com/uiocompcat/tmQM
 | --------------------- | -------------- | ------------- | ------------------ | -------------- |
 | RDKit Compute2DCoords | 4.43           | 2.57          | 54.5%              | 28.8%          |
 | RDKit CoordGen        | 3.93           | 0.51          | 55.2%              | 49.1%          |
-| **metal2d**           | **0.81**       | **0.06**      | **27.5%**          | **69.9%**      |
+| **metal2d**           | **0.81**       | **0.06**      | **27.5%**          | **69.8%**      |
 
 
 ```bash
@@ -124,7 +124,7 @@ and denticities from 1 to 8 — so it scores harsher than tmQM:
 | on the bundled sample | bond crossings | atom overlaps | clean drawings |
 | --------------------- | -------------- | ------------- | -------------- |
 | RDKit CoordGen        | 5.60           | 0.63          | 44.0%          |
-| **metal2d**           | **0.65**       | **0.02**      | **75.7%**      |
+| **metal2d**           | **0.65**       | **0.02**      | **75.3%**      |
 
 
 `examples/make_sample.py` regenerates it from a database CSV, deterministically.
@@ -160,8 +160,14 @@ the ligands are shared out. Bidentate phosphines are fine.
 - **Large wrapping ligands.** Peptide conjugates and macrocyclic chelators that
 envelop the metal are handled better by plain CoordGen, which has dedicated
 macrocycle support. This is where most of the remaining losses sit.
-- **One metal centre.** Polynuclear complexes are not supported; the first metal
-found is used.
+- **Polynuclear complexes: partly.** Two metals joined by a flexible linker, or
+bridged by a ligand that chelates each of them separately, are laid out one
+centre at a time and come out fine. Metals bonded to each other are handled by a
+dedicated cluster layout: the pair is placed as a rigid core, bridging donors go
+on the perpendicular bisector between them, and the terminal ligands of the two
+halves are mirrored rather than shared out independently. Not handled: cores of
+three or more metals, and pairs held close by a short rigid bridge with no
+metal–metal bond, where the second centre can land almost on top of the first.
 - Cage ligands such as PTA or adamantane cannot be drawn flat without
 self-crossings at all. `metal2d metrics` reports how many crossings lie inside
 a single ligand, so this can be told apart from a bad arrangement.
