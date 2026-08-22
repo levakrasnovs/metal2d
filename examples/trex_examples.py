@@ -9,7 +9,7 @@ from pathlib import Path
 import metal2d
 
 
-BPY = "n1ccccc1-c1ccccn1"
+PPY = "[c-]1ccccc1-c1ccccn1"
 
 TREX_EXAMPLES = {
     "trex_cisplatin": ("cisplatin",
@@ -20,9 +20,13 @@ TREX_EXAMPLES = {
         "Pt{+2} | L=[ SMILES:[Cl-], SMILES:[Cl-], SMILES:N, SMILES:N ] "
         "| MAP:{ (1:1, 2:1), (3:1, 4:1) } | G:sqpl"
     ),
-    "trex_ir_bpy3_delta": ("Delta-[Ir(bpy)3]3+",
-        f"Ir{{+3}} | L=[ SMILES:{BPY}, SMILES:{BPY}, SMILES:{BPY} ] "
-        "| MAP:{ (1:1, 2:1), (1:12, 3:1), (2:12, 3:12) } | G:O | X:Δ"
+    "trex_fac_ir_ppy3": ("fac-Ir(ppy)3",
+        f"Ir{{+3}} | L=[ SMILES:{PPY}, SMILES:{PPY}, SMILES:{PPY} ] "
+        "| MAP:{ (1:1, 2:12), (2:1, 3:12), (3:1, 1:12) } | G:O"
+    ),
+    "trex_mer_ir_ppy3": ("mer-Ir(ppy)3",
+        f"Ir{{+3}} | L=[ SMILES:{PPY}, SMILES:{PPY}, SMILES:{PPY} ] "
+        "| MAP:{ (1:1, 2:1), (1:12, 3:12), (3:1, 2:12) } | G:O"
     ),
 }
 

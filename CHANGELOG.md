@@ -23,7 +23,7 @@ All notable changes to `metal2d` are documented here. The project follows
 - Octahedral perspective bonds and topology-aware fac/mer classification for
   suitable T-REX inputs.
 - Reproducible T-REX examples and SVG figures for cisplatin, transplatin and
-  `Delta-[Ir(bpy)3]3+`.
+  fac/mer `Ir(ppy)3`.
 - Regression coverage for the reported mono- and polynuclear failure cases.
 
 ### Changed

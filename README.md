@@ -116,14 +116,21 @@ metal2d.draw(mol, "cisplatin.svg")
 mol = metal2d.depict_input(cisplatin)
 ```
 
-The complete, reproducible examples for cisplatin, transplatin and
-octahedral `Δ-[Ir(bpy)3]3+` are in
+The complete, reproducible examples for cisplatin, transplatin and the
+fac/mer pair of octahedral `Ir(ppy)3` are in
 [`examples/trex_examples.py`](examples/trex_examples.py). Running the script
 regenerates the corresponding SVG files in `images/`:
 
-| cisplatin | transplatin | `Δ-[Ir(bpy)3]3+` |
-| --- | --- | --- |
-| ![T-REX cisplatin](images/trex_cisplatin.svg) | ![T-REX transplatin](images/trex_transplatin.svg) | ![T-REX delta Ir(bpy)3](images/trex_ir_bpy3_delta.svg) |
+| cisplatin | transplatin |
+| --- | --- |
+| ![T-REX cisplatin](images/trex_cisplatin.svg) | ![T-REX transplatin](images/trex_transplatin.svg) |
+
+| `fac-Ir(ppy)3` | `mer-Ir(ppy)3` |
+| --- | --- |
+| ![T-REX fac Ir(ppy)3](images/trex_fac_ir_ppy3.svg) | ![T-REX mer Ir(ppy)3](images/trex_mer_ir_ppy3.svg) |
+
+`Ir(bpy)3` itself has `Δ/Λ` optical isomers rather than fac/mer isomers,
+because the two donor atoms within each bpy ligand are equivalent.
 
 The public T-REX API consists of `parse_trex`, `mol_from_trex`,
 `classify_topology`, `depict_trex`, `draw_trex`, `mol_from_input`, and
