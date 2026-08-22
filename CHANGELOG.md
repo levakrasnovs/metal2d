@@ -24,6 +24,8 @@ All notable changes to `metal2d` are documented here. The project follows
   suitable T-REX inputs.
 - Reproducible T-REX examples and SVG figures for cisplatin, transplatin and
   fac/mer `Ir(ppy)3`.
+- Reproducible three-engine comparison figures for representative dinuclear
+  iridium, iron and ruthenium complexes.
 - Regression coverage for the reported mono- and polynuclear failure cases.
 
 ### Changed
