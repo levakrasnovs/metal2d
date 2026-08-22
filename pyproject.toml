@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "metal2d"
-version = "0.2.0"
+version = "0.3.0"
 description = "Readable 2D depictions of coordination and organometallic complexes for RDKit"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -50,4 +50,5 @@ artifacts = ["metal2d/data/*.smi"]
 packages = ["metal2d"]
 
 [tool.hatch.build.targets.sdist]
-include = ["metal2d", "tests", "examples", "images", "README.md", "LICENSE"]
+include = ["metal2d", "tests", "examples", "images", "README.md",
+           "CHANGELOG.md", "LICENSE"]

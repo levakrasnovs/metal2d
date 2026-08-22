@@ -9,7 +9,10 @@ should fan out, and no idea that five bonds to the same ring mean one
 
 `metal2d` does not replace the depiction engine. It cuts the ligands off, lets
 CoordGen draw each of them on its own — which it does well, they are ordinary
-organic fragments — and then arranges them around the metal itself.
+organic fragments — and then arranges them around the metal itself. Dedicated
+paths handle metal-metal cores, bridging ligands, macrocyclic cavities and
+eta-bound rings. Input can be ordinary coordination SMILES or a monometallic
+T-REX-Full string carrying explicit coordination topology.
 
 ---
 
@@ -75,12 +78,14 @@ metal2d.draw(coords, "complex.svg")   # or .png
 `depict()` only produces coordinates, so the result can go to any renderer, into
 `MolsToGridImage`, or out to a molfile. `draw()` is the convenience wrapper.
 
-From the command line, on a SMILES string, a `.smi`/`.csv` list or an SDF:
+From the command line, on a SMILES or T-REX string, a `.smi`/`.csv` list, an
+SDF, or a `.trex` file:
 
 ```bash
 metal2d draw "CC(C)(C)c1cc[n]2->[Ru+2]34..."
 metal2d draw complexes.smi --png --outdir figures
 metal2d draw library.sdf --index 0 5 12
+metal2d draw complexes.trex --outdir figures
 ```
 
 Input format does not matter: incoming coordinates are discarded and
@@ -88,6 +93,35 @@ regenerated. What is required is that the metal–donor bonds are present in the
 connection table, as dative bonds (`->`, `<-`) or plain ones. Complexes written
 as separated ions (`[Ru+2].c1ccncc1...`) carry no coordination information and
 fall through to plain CoordGen.
+
+### T-REX input
+
+[T-REX](https://github.com/KevlishviliGroup/trex) records the coordination
+geometry and trans-pair map separately from ligand connectivity. This preserves
+cis/trans, fac/mer and related topological information that can be lost when a
+complex is reduced to ordinary SMILES.
+
+```python
+import metal2d
+
+cisplatin = (
+    "Pt{+2} | L=[ SMILES:[Cl-], SMILES:[Cl-], SMILES:N, SMILES:N ] "
+    "| MAP:{ (1:1, 3:1), (2:1, 4:1) } | G:sqpl"
+)
+
+mol = metal2d.depict_trex(cisplatin)
+metal2d.draw(mol, "cisplatin.svg")
+
+# Unified entry point when the caller may receive either format:
+mol = metal2d.depict_input(cisplatin)
+```
+
+The public T-REX API consists of `parse_trex`, `mol_from_trex`,
+`classify_topology`, `depict_trex`, `draw_trex`, `mol_from_input`, and
+`depict_input`. Only monometallic T-REX-Full records with `SMILES:` ligand
+payloads are converted in this release; unsupported payload types fail
+explicitly rather than silently discarding topology. T-REX input is not a CIF
+or general 3D-file reader.
 
 ---
 
@@ -101,8 +135,8 @@ Measured on every tenth structure of **[tmQM](https://github.com/uiocompcat/tmQM
 |                       | bond crossings | atom overlaps | donors facing away | clean drawings |
 | --------------------- | -------------- | ------------- | ------------------ | -------------- |
 | RDKit Compute2DCoords | 4.43           | 2.57          | 54.5%              | 28.8%          |
-| RDKit CoordGen        | 3.93           | 0.51          | 55.2%              | 49.1%          |
-| **metal2d**           | **0.81**       | **0.06**      | **27.5%**          | **69.8%**      |
+| RDKit CoordGen        | 3.93           | 0.51          | 55.1%              | 49.1%          |
+| **metal2d v0.3.0**    | **0.62**       | **0.04**      | **25.1%**          | **72.5%**      |
 
 
 ```bash
@@ -123,8 +157,8 @@ and denticities from 1 to 8 — so it scores harsher than tmQM:
 
 | on the bundled sample | bond crossings | atom overlaps | clean drawings |
 | --------------------- | -------------- | ------------- | -------------- |
-| RDKit CoordGen        | 5.60           | 0.63          | 44.0%          |
-| **metal2d**           | **0.65**       | **0.02**      | **75.3%**      |
+| RDKit CoordGen        | 5.51           | 0.52          | 44.0%          |
+| **metal2d v0.3.0**    | **0.63**       | **0.01**      | **77.0%**      |
 
 
 `examples/make_sample.py` regenerates it from a database CSV, deterministically.
@@ -145,6 +179,10 @@ and denticities from 1 to 8 — so it scores harsher than tmQM:
    on an arc of slots.
 6. Share the 360° around the metal in proportion to how wide each ligand really
    is, then relax rotations to clear the remaining collisions.
+7. For polynuclear structures, detect metal-metal, shared-atom and whole-ligand
+   bridges, construct the shared core first, and place terminal halves around
+   it. Equivalent halves may be mirrored as complete rigid units instead of
+   being laid out independently.
 
 
 
@@ -160,14 +198,10 @@ the ligands are shared out. Bidentate phosphines are fine.
 - **Large wrapping ligands.** Peptide conjugates and macrocyclic chelators that
 envelop the metal are handled better by plain CoordGen, which has dedicated
 macrocycle support. This is where most of the remaining losses sit.
-- **Polynuclear complexes: partly.** Two metals joined by a flexible linker, or
-bridged by a ligand that chelates each of them separately, are laid out one
-centre at a time and come out fine. Metals bonded to each other are handled by a
-dedicated cluster layout: the pair is placed as a rigid core, bridging donors go
-on the perpendicular bisector between them, and the terminal ligands of the two
-halves are mirrored rather than shared out independently. Not handled: cores of
-three or more metals, and pairs held close by a short rigid bridge with no
-metal–metal bond, where the second centre can land almost on top of the first.
+- **Large polynuclear cores.** Dinuclear structures have dedicated paths for
+metal-metal bonds, shared donor atoms, whole-ligand bridges and equivalent
+terminal halves. Cores of three or more metals still rely partly on recursive
+layout and may need manual coordinates when several rigid bridges compete.
 - Cage ligands such as PTA or adamantane cannot be drawn flat without
 self-crossings at all. `metal2d metrics` reports how many crossings lie inside
 a single ligand, so this can be told apart from a bad arrangement.

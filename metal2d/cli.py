@@ -7,12 +7,14 @@ from rdkit import RDLogger
 
 from . import __version__
 from .core import depict, draw, find_metal, read_molecules
+from .trex import depict_trex, is_trex
 from .compare import compare as compare_figure
 from .metrics import evaluate, worst
 
 
 def _add_common(p):
-    p.add_argument("input", help="SMILES string, .smi/.csv/.tsv list, or .sdf")
+    p.add_argument("input", help="SMILES or T-REX string, or a "
+                                 ".smi/.csv/.tsv/.sdf/.trex file")
     p.add_argument("-q", "--quiet", action="store_true",
                    help="suppress RDKit warnings and the progress bar")
     p.add_argument("--column", help="which column holds the SMILES "
@@ -25,11 +27,34 @@ def cmd_draw(a):
     fmt = "png" if a.png else "svg"
     size = (a.size, a.size)
     ok = bad = nometal = 0
-    for i, (name, m) in enumerate(read_molecules(a.input, a.column)):
+    source_is_trex = is_trex(a.input)
+    trex_file = os.path.splitext(str(a.input))[1].lower() == ".trex"
+    if source_is_trex:
+        items = [("mol_0", a.input)]
+    elif trex_file:
+        items = []
+        with open(a.input) as fh:
+            for raw in fh:
+                value = raw.strip()
+                if value and not value.startswith("#"):
+                    items.append(("mol_%d" % len(items), value))
+    else:
+        items = read_molecules(a.input, column=a.column)
+
+    for i, (name, value) in enumerate(items):
         if a.index and i not in a.index:
             continue
         safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in str(name))[:60]
         path = os.path.join(a.outdir, "%03d_%s.%s" % (i, safe, fmt))
+        if source_is_trex or trex_file:
+            try:
+                m = depict_trex(value)
+            except (ValueError, NotImplementedError):
+                m = None
+            depicted = True
+        else:
+            m = value
+            depicted = False
         if m is None:
             print("%-40s PARSE FAILED" % path)
             bad += 1
@@ -37,7 +62,7 @@ def cmd_draw(a):
         if find_metal(m) is None:
             nometal += 1
             print("%-40s no metal centre - plain CoordGen depiction" % path)
-        draw(depict(m), path, size=size)
+        draw(m if depicted else depict(m), path, size=size)
         print(path)
         ok += 1
     print("\n%d written, %d unparsable, %d without a metal centre"
@@ -64,7 +89,8 @@ def cmd_metrics(a):
 def cmd_compare(a):
     engines = tuple(a.engines.split(","))
     if os.path.exists(a.input):
-        items = [(n, m) for i, (n, m) in enumerate(read_molecules(a.input, a.column))
+        items = [(n, m) for i, (n, m) in enumerate(
+                 read_molecules(a.input, column=a.column))
                  if (not a.index or i in a.index)]
     else:
         items = [("mol", a.input)]
