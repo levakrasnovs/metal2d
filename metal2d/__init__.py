@@ -14,14 +14,20 @@ groups collapsed to a single bond at the ring centre - which a custom renderer
 needs in order not to draw six lines to one arene.
 """
 from .core import (METALS, METAL_COLOR, ML, LB, HAPTO_R, MAX_REACH,
-                   depict, draw, find_metal, read_molecules, style_options)
+                   depict, depict_input, mol_from_input, draw, find_metal,
+                   read_molecules, style_options)
 from .core import _drawing_mol as prepare_for_drawing
+from .trex import (Trex, TrexMol, classify_topology, depict_trex, draw_trex,
+                   is_trex, mol_from_trex, parse_trex)
 from .metrics import score, evaluate
 from .compare import compare
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
-__all__ = ["depict", "draw", "prepare_for_drawing", "style_options",
+__all__ = ["depict", "depict_input", "mol_from_input", "draw",
+           "prepare_for_drawing", "style_options",
            "find_metal", "read_molecules", "score", "evaluate", "compare",
+           "Trex", "TrexMol", "is_trex", "parse_trex", "mol_from_trex",
+           "classify_topology", "depict_trex", "draw_trex",
            "METALS", "METAL_COLOR", "ML", "LB", "HAPTO_R", "MAX_REACH",
            "__version__"]

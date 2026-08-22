@@ -12,6 +12,7 @@ __pycache__/
 dist/
 build/
 .eggs/
+release_metrics/
 
 # Virtual environments
 .venv/
