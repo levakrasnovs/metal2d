@@ -22,6 +22,8 @@ All notable changes to `metal2d` are documented here. The project follows
   carbonyls and related dinuclear motifs.
 - Octahedral perspective bonds and topology-aware fac/mer classification for
   suitable T-REX inputs.
+- Reproducible T-REX examples and SVG figures for cisplatin, transplatin and
+  `Delta-[Ir(bpy)3]3+`.
 - Regression coverage for the reported mono- and polynuclear failure cases.
 
 ### Changed
