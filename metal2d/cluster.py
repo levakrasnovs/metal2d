@@ -374,19 +374,19 @@ def depict(mol, relax=True, _depth=0, pair=None, sep=None):
     else:
         clusters = metal_clusters(mol)
         if not clusters or len(clusters[0]) < 2:
-            return core.depict(mol, cluster=False)
+            return core.depict(mol, cluster=False, _depth=_depth)
         cluster = clusters[0]
         if sep is None:
             sep = D_MM
     built = _template(mol, cluster, sep)
     if built is None:
-        return core.depict(mol, cluster=False)
+        return core.depict(mol, cluster=False, _depth=_depth)
     pos, target, bridges, term = built
 
     cut = [b.GetIdx() for m in cluster for b in mol.GetAtomWithIdx(m).GetBonds()
            if b.GetOtherAtomIdx(m) not in cluster]
     if not cut:
-        return core.depict(mol, cluster=False)
+        return core.depict(mol, cluster=False, _depth=_depth)
 
     frag = Chem.FragmentOnBonds(mol, cut, addDummies=False)
     pieces = Chem.GetMolFrags(frag, asMols=True, sanitizeFrags=False,
@@ -607,7 +607,7 @@ def depict(mol, relax=True, _depth=0, pair=None, sep=None):
             coords[glob] = xy[local]
 
     if not np.isfinite(coords).all():
-        return core.depict(mol, cluster=False)
+        return core.depict(mol, cluster=False, _depth=_depth)
 
     mol.RemoveAllConformers()
     conf = Chem.Conformer(mol.GetNumAtoms())
