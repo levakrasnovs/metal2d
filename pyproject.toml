@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "metal2d"
-version = "0.3.0"
+version = "0.3.1"
 description = "Readable 2D depictions of coordination and organometallic complexes for RDKit"
 readme = "README.md"
 requires-python = ">=3.9"

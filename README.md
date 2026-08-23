@@ -106,6 +106,10 @@ coords = metal2d.depict(mol)          # a copy carrying a 2D conformer
 metal2d.draw(coords, "complex.svg")   # or .png
 ```
 
+For debugging an unexpected polynuclear fallback, pass `strict=True` to
+`depict()`. The default keeps the robust fallback and logs the original cluster
+exception as a warning; strict mode re-raises it with its traceback.
+
 `depict()` only produces coordinates, so the result can go to any renderer, into
 `MolsToGridImage`, or out to a molfile. `draw()` is the convenience wrapper.
 

@@ -5,6 +5,24 @@ All notable changes to `metal2d` are documented here. The project follows
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-08-23
+
+### Added
+
+- `depict(..., strict=True)` re-raises unexpected cluster-layout failures for
+  debugging; the default keeps the resilient fallback and logs a warning.
+
+### Fixed
+
+- Importing `metal2d` no longer disables RDKit logging or changes the global
+  preferred depiction engine.
+- `metal2d compare INPUT -o FILE` now creates unique suffixed files when INPUT
+  contains multiple molecules instead of silently overwriting FILE.
+- `prepare_for_drawing()` reports an actionable error when an eta-bound group
+  has no conformer instead of leaking RDKit's `Bad Conformer Id`.
+- Added regression coverage for CSV `--column` selection, which was already
+  corrected in v0.3.0.
+
 ## [0.3.0] - 2026-08-22
 
 ### Added
@@ -69,6 +87,7 @@ All notable changes to `metal2d` are documented here. The project follows
 
 - First packaged release.
 
-[Unreleased]: https://github.com/levakrasnovs/metal2d/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/levakrasnovs/metal2d/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/levakrasnovs/metal2d/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/levakrasnovs/metal2d/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/levakrasnovs/metal2d/compare/v0.1.0...v0.2.0

@@ -18,6 +18,7 @@ Priority is readability: ligands must fit without overlapping. Perfect
 octahedral symmetry is sacrificed when it conflicts with that.
 """
 import itertools
+import logging
 
 import numpy as np
 from rdkit import Chem
@@ -42,6 +43,7 @@ LB = 1.15           # bond length inside a ligand. Deliberately shorter than ML:
                     # published figures, but the gap must not be so large that
                     # small ligands like CO get swallowed by their own labels
 METAL_COLOR = (0.85, 0.30, 0.55)
+logger = logging.getLogger(__name__)
 
 
 # --------------------------------------------------------------------------- #
@@ -880,7 +882,7 @@ def _angular_width(xy, rmin=0.8 * ML):
 #  main
 # --------------------------------------------------------------------------- #
 def depict(mol, ml=ML, relax=True, pad=6.0, _depth=0, cluster=True,
-           _choose_root=True):
+           _choose_root=True, strict=False):
     mol = Chem.Mol(mol)
 
     # Metals bonded to each other need the cluster layout: the single-centre
@@ -932,7 +934,7 @@ def depict(mol, ml=ML, relax=True, pad=6.0, _depth=0, cluster=True,
                             if _cl.ligand_bridged_pairs(mol):
                                 recursive = depict(
                                     mol, ml=ml, relax=relax, pad=pad,
-                                    _depth=_depth, cluster=False)
+                                    _depth=_depth, cluster=False, strict=strict)
                                 candidates.append(recursive)
                             return min(
                                 candidates,
@@ -1002,7 +1004,8 @@ def depict(mol, ml=ML, relax=True, pad=6.0, _depth=0, cluster=True,
                     # independent one-atom bridge.
                     try:
                         ordinary = depict(mol, ml=ml, relax=relax, pad=pad,
-                                          _depth=_depth, cluster=False)
+                                          _depth=_depth, cluster=False,
+                                          strict=strict)
                         ordinary = _cl.polish_bridge_ligands(ordinary,
                                                              pairs[0] if pairs
                                                              else pr)
@@ -1026,7 +1029,11 @@ def depict(mol, ml=ML, relax=True, pad=6.0, _depth=0, cluster=True,
         except ImportError:
             pass
         except Exception:
-            pass
+            if strict:
+                raise
+            logger.warning(
+                "cluster layout failed; falling back to the recursive "
+                "single-centre layout", exc_info=True)
 
     # In a polynuclear complex without an M-M/shared-atom core the layout is
     # recursive: one metal is placed first and the rest of the complex is
@@ -1045,7 +1052,7 @@ def depict(mol, ml=ML, relax=True, pad=6.0, _depth=0, cluster=True,
             try:
                 cand = depict(renum, ml=ml, relax=relax, pad=pad,
                               _depth=_depth, cluster=False,
-                              _choose_root=False)
+                              _choose_root=False, strict=strict)
                 inverse = [order.index(i) for i in range(len(order))]
                 candidates.append(Chem.RenumberAtoms(cand, inverse))
             except Exception:
@@ -1095,7 +1102,8 @@ def depict(mol, ml=ML, relax=True, pad=6.0, _depth=0, cluster=True,
         # knot, so lay the sub-complex out with the same algorithm instead.
         if _depth < 4 and find_metal(piece) is not None:
             try:
-                sub = depict(piece, ml=ml, relax=relax, pad=pad, _depth=_depth + 1)
+                sub = depict(piece, ml=ml, relax=relax, pad=pad,
+                             _depth=_depth + 1, strict=strict)
                 conf = sub.GetConformer()
                 piece.RemoveAllConformers()
                 piece.AddConformer(Chem.Conformer(conf), assignId=True)
@@ -2031,6 +2039,11 @@ def _drawing_mol(mol):
                if _is_haptic_group(rw, g)]
 
       for grp in hapto:
+          if rw.GetNumConformers() == 0:
+              raise ValueError(
+                  "prepare_for_drawing() requires a molecule with 2D "
+                  "coordinates when haptic groups are present; call "
+                  "metal2d.depict() first")
           conf = rw.GetConformer()
           xy = np.array([[conf.GetAtomPosition(i).x, conf.GetAtomPosition(i).y]
                          for i in range(rw.GetNumAtoms())])
