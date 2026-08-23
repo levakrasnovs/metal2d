@@ -22,7 +22,6 @@ def _add_common(p):
 
 
 def cmd_draw(a):
-    RDLogger.DisableLog("rdApp.*") if a.quiet else None
     os.makedirs(a.outdir, exist_ok=True)
     fmt = "png" if a.png else "svg"
     size = (a.size, a.size)
@@ -95,12 +94,18 @@ def cmd_compare(a):
     else:
         items = [("mol", a.input)]
     os.makedirs(a.outdir, exist_ok=True)
-    for name, m in items:
+    multiple_outputs = bool(a.out and len(items) > 1)
+    for i, (name, m) in enumerate(items):
         if m is None:
             print("%-30s PARSE FAILED" % name)
             continue
         safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in str(name))[:40]
-        path = a.out or os.path.join(a.outdir, "comparison_%s.svg" % safe)
+        if multiple_outputs:
+            root, ext = os.path.splitext(a.out)
+            path = "%s_%03d_%s%s" % (root, i, safe, ext or ".svg")
+        else:
+            path = a.out or os.path.join(a.outdir,
+                                         "comparison_%s.svg" % safe)
         try:
             path, res = compare_figure(m, path, engines=engines, size=a.size,
                                        png=a.png)

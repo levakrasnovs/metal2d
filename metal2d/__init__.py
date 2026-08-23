@@ -22,7 +22,7 @@ from .trex import (Trex, TrexMol, classify_topology, depict_trex, draw_trex,
 from .metrics import score, evaluate
 from .compare import compare
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 __all__ = ["depict", "depict_input", "mol_from_input", "draw",
            "prepare_for_drawing", "style_options",

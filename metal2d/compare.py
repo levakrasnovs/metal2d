@@ -20,11 +20,9 @@ import os
 import re
 import sys
 
-from rdkit import Chem, RDLogger
+from rdkit import Chem
 from rdkit.Chem import rdCoordGen, rdDepictor
 from rdkit.Chem.Draw import rdMolDraw2D
-
-RDLogger.DisableLog("rdApp.*")
 
 from . import core as metal2d
 from .metrics import score, read_molecules
@@ -46,7 +44,6 @@ def _depiction(mol, engine):
     if engine == "compute2dcoords":
         m = Chem.Mol(mol)
         m.RemoveAllConformers()
-        rdDepictor.SetPreferCoordGen(False)
         rdDepictor.Compute2DCoords(m)
         return m, m
     if engine == "coordgen":

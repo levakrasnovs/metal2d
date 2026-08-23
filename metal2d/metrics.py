@@ -19,10 +19,8 @@ depend on the drawing scale and are comparable across engines.
 """
 import sys
 import numpy as np
-from rdkit import Chem, RDLogger
+from rdkit import Chem
 from rdkit.Chem import rdCoordGen, rdDepictor
-
-RDLogger.DisableLog("rdApp.*")
 
 from . import core as metal2d
 
@@ -180,7 +178,6 @@ def score(mol, close_frac=0.35, tight_frac=0.30):
 def _legacy(mol):
     m = Chem.Mol(mol)
     m.RemoveAllConformers()
-    rdDepictor.SetPreferCoordGen(False)
     rdDepictor.Compute2DCoords(m)
     return m
 
