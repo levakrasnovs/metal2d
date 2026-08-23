@@ -1960,17 +1960,17 @@ def _relax(placed, ml=ML, sweeps=4, span=30.0, step=3.0, push=0.6):
             u = xy.mean(0)
             u = u / max(np.linalg.norm(u), 1e-6)
             best, bxy = None, xy
+            # a ligand that defines the metal position must not be shifted:
+            # translating it destroys the equal metal-donor distances
+            # A circle-fitted ligand keeps its metal-donor bonds equal only
+            # while it is not translated, so it is normally rotated in place.
+            # But two such ligands can only rotate into each other; when a
+            # clash survives, unequal bonds beat overlapping drawings.
+            stuck = (rigid == 1 and
+                     sum(_clashes(_occupancy(xy, dl), o, cut)
+                         for o in others) > 0)
             for a in angles:
                 cand0 = xy @ _rot(a).T
-                # a ligand that defines the metal position must not be shifted:
-                # translating it destroys the equal metal-donor distances
-                # A circle-fitted ligand keeps its metal-donor bonds equal only
-                # while it is not translated, so it is normally rotated in place.
-                # But two such ligands can only rotate into each other; when a
-                # clash survives, unequal bonds beat overlapping drawings.
-                stuck = (rigid == 1 and
-                         sum(_clashes(_occupancy(xy, dl), o, cut)
-                             for o in others) > 0)
                 if rigid == 2 or (rigid and not stuck):
                     steps = (0.0,)
                 else:
