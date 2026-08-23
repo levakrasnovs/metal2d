@@ -24,18 +24,11 @@ from rdkit.Chem import rdCoordGen, rdDepictor
 
 from . import core as metal2d
 
-from .core import METALS       # one definition of what counts as a metal
-
+from .core import find_metal
 
 # --------------------------------------------------------------------------- #
 #  geometry helpers
 # --------------------------------------------------------------------------- #
-def _find_metal(mol):
-    for a in mol.GetAtoms():
-        if a.GetAtomicNum() in METALS:
-            return a.GetIdx()
-    return None
-
 
 def _xy(mol):
     c = mol.GetConformer()
@@ -140,7 +133,7 @@ def score(mol, close_frac=0.35, tight_frac=0.30):
     out["crossings"], out["tight"] = crossings, tight
 
     # --- metal specific ----------------------------------------------------- #
-    mi = _find_metal(mol)
+    mi = find_metal(mol)
     if mi is not None:
         don = set(b.GetOtherAtomIdx(mi) for b in mol.GetAtomWithIdx(mi).GetBonds())
         # eta-bonded ring carbons legitimately sit close to the metal
@@ -360,11 +353,11 @@ def evaluate(src, engines=("compute2dcoords", "coordgen", "metal2d"), step=1,
         if m is None:
             failed += 1
             continue
-        if _find_metal(m) is None:
+        if find_metal(m) is None:
             skipped += 1
             continue
         row = {"name": name, "atoms": m.GetNumAtoms(),
-               "metal": m.GetAtomWithIdx(_find_metal(m)).GetSymbol()}
+               "metal": m.GetAtomWithIdx(find_metal(m)).GetSymbol()}
         ok = True
         for eng in engines:
             try:
